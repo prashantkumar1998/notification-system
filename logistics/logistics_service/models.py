@@ -16,7 +16,7 @@ class Tracking(models.Model):
     name = models.CharField(max_length=100)
     address = models.TextField()
     status = models.TextField(choices=Status.choices, default=Status.ORDERED)
-    email = models.EmailField(max_length=254)
+    email = models.EmailField(max_length=254, default='')
 
     def __str__(self):
         return f"Order ID: {self.tracking_id}, Name: {self.name}"

@@ -6,6 +6,13 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+TOPIC_NOTIFICATION_IN = "notification_handler"
+TOPIC_NOTIFICATION_EMAIL = 'email_notification'
+BOOTSTRAP_SERVERS = 'kafka:9092'
+#BOOTSTRAP_SERVERS = 'localhost:9092'
+CONSUMER_GROUP_EMAIL = 'email_consumer_group'
+
 SENDER_EMAIL_ID = os.getenv("SENDER_EMAIL_ID")
 PASSWORD = os.getenv("PASSWORD")
 
@@ -36,14 +43,14 @@ def get_tracking_details(tracking_id):
 class email_message():
     def __init__(self):
         self.status_message_map = {
-            "ordered":"hy {user}, your order has been placed",
-            "dispatched":"hy {user}, your order has been dispatched",
-            "shiped":"hy {user}, your order has been shiped",
-            "out_for_delivery":"hy {user}, your order is out for delivery",
-            "delivered":"hy {user}, your order has been delivered",
-            "picked_up":"hy {user}, your item has been picked",
-            "return_to_seller":"hy {user}, your item is return to seller",
-            "undelivered":"hy {user}, your order is undelivered"
+            "ordered":"hy {}, your order has been placed",
+            "dispatched":"hy {}, your order has been dispatched",
+            "shiped":"hy {}, your order has been shiped",
+            "out_for_delivery":"hy {}, your order is out for delivery",
+            "delivered":"hy {}, your order has been delivered",
+            "picked_up":"hy {}, your item has been picked",
+            "return_to_seller":"hy {}, your item is return to seller",
+            "undelivered":"hy {}, your order is undelivered"
         }
     def genrate_message(self, user_name, status):
         msg = self.status_message_map[status]
@@ -62,6 +69,7 @@ class send_emails():
     def email_sender(self, message, receiver_email):
         try:
             # sending the mail
+            print('----------sending email--------------------')
             self.smtp.sendmail(SENDER_EMAIL_ID, receiver_email, message)
         except Exception as e:
             print(e)
@@ -71,18 +79,21 @@ if __name__ == "__main__":
     email_message_obj = email_message()
     try:
         consumer = KafkaConsumer(
-            "email_notification",
-            bootstrap_servers='kafka:9092',
+            TOPIC_NOTIFICATION_EMAIL,
+            bootstrap_servers=BOOTSTRAP_SERVERS,
             auto_offset_reset='earliest',
-            group_id="email_task_group")
+            )
 
         print("starting the consumer")
         for task_msg in consumer:
+            #import pdb;pdb.set_trace()
             task_msg = json.loads(task_msg.value)
+            print(f'---------{task_msg}-----------------')
             res = get_tracking_details(task_msg['tracking_id'])
             user = res['name']
             email = res['email']
             status = res['status']
+            print('-------sending email notification--------------')
             noti_msg = email_message_obj.genrate_message(user, status)
             send_email_obj.email_sender(noti_msg, email)
 
